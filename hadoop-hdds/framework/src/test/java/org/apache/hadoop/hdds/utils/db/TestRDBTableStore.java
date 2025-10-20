@@ -55,6 +55,7 @@ import org.rocksdb.Statistics;
 import org.rocksdb.StatsLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * Tests for RocksDBTable Store.
@@ -640,7 +641,8 @@ public class TestRDBTableStore {
     assertEquals(2, rangeKVs.size());
 
     // test with a filter
-    final KeyPrefixFilter filter1 = KeyPrefixFilter.newFilter(StringUtils.bytes2String(samplePrefix) + "1");
+    final KeyPrefixFilter filter1 = KeyPrefixFilter.newFilter(
+        new Tuple<>(StringUtils.bytes2String(samplePrefix) + "1", StringCodec.get()));
     startKey = StringUtils.string2Bytes(
         StringUtils.bytes2String(samplePrefix));
     rangeKVs = testTable.getRangeKVs(startKey, blockCount,

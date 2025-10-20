@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.hadoop.hdds.HddsConfigKeys;
 import org.apache.hadoop.hdds.conf.ConfigurationSource;
 import org.apache.hadoop.hdds.protocol.proto.StorageContainerDatanodeProtocolProtos.DeletedBlocksTransaction;
+import org.apache.hadoop.hdds.utils.db.Codec;
 import org.apache.hadoop.hdds.utils.db.DBColumnFamilyDefinition;
 import org.apache.hadoop.hdds.utils.db.DBConfigFromFile;
 import org.apache.hadoop.hdds.utils.db.DBDefinition;
@@ -38,6 +39,7 @@ import org.apache.hadoop.ozone.container.common.helpers.BlockData;
 import org.apache.hadoop.ozone.container.common.statemachine.DatanodeConfiguration;
 import org.apache.hadoop.ozone.container.common.utils.db.DatanodeDBProfile;
 import org.rocksdb.RocksDBException;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * This class defines the RocksDB structure for datanode following schema
@@ -167,6 +169,12 @@ public class DatanodeSchemaThreeDBDefinition extends AbstractDatanodeDBDefinitio
     // NOTE: Rocksdb normally needs a fixed length prefix.
     return FixedLengthStringCodec.bytes2String(Longs.toByteArray(containerID))
         + separator;
+  }
+
+  public static Tuple<String, Codec<String>> getContainerKeyPrefixWithCodec(long containerID) {
+    // NOTE: Rocksdb normally needs a fixed length prefix.
+    return new Tuple<>(FixedLengthStringCodec.bytes2String(Longs.toByteArray(containerID))
+        + separator, FixedLengthStringCodec.get());
   }
 
   public static byte[] getContainerKeyPrefixBytes(long containerID) {

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.utils.MetadataKeyFilters.KeyPrefixFilter;
+import org.apache.hadoop.hdds.utils.db.StringCodec;
 import org.apache.hadoop.hdds.utils.db.Table;
 import org.apache.hadoop.hdds.utils.db.Table.KeyValue;
 import org.apache.hadoop.ozone.om.OMConfigKeys;
@@ -38,6 +39,7 @@ import org.apache.hadoop.ozone.om.helpers.BucketLayout;
 import org.apache.hadoop.ozone.om.helpers.OmBucketInfo;
 import org.apache.hadoop.ozone.om.helpers.OmDirectoryInfo;
 import org.apache.hadoop.ozone.om.helpers.WithParentObjectId;
+import org.yaml.snakeyaml.util.Tuple;
 import picocli.CommandLine;
 
 /**
@@ -225,7 +227,7 @@ public class PrefixParser implements Callable<Void> {
     String key = OM_KEY_PREFIX + volumeId +
             OM_KEY_PREFIX + bucketId +
             OM_KEY_PREFIX + parentId;
-    return KeyPrefixFilter.newFilter(key);
+    return KeyPrefixFilter.newFilter(new Tuple<>(key, StringCodec.get()));
   }
 
   public int getParserStats(Types type) {

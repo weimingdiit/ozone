@@ -39,6 +39,7 @@ import org.apache.hadoop.hdds.client.BlockID;
 import org.apache.hadoop.hdds.conf.OzoneConfiguration;
 import org.apache.hadoop.hdds.protocol.datanode.proto.ContainerProtos;
 import org.apache.hadoop.hdds.utils.MetadataKeyFilters.KeyPrefixFilter;
+import org.apache.hadoop.hdds.utils.db.Codec;
 import org.apache.hadoop.hdds.utils.db.Table;
 import org.apache.hadoop.ozone.OzoneConfigKeys;
 import org.apache.hadoop.ozone.OzoneConsts;
@@ -57,6 +58,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * This class is used to test KeyValue container block iterator.
@@ -302,8 +304,10 @@ public class TestKeyValueBlockIterator {
             blockIDs.get(OzoneConsts.DELETING_KEY_PREFIX));
 
     // Test arbitrary filter.
-    String schemaPrefix = containerData.containerPrefix();
-    final KeyPrefixFilter secondFilter = KeyPrefixFilter.newFilter(schemaPrefix + secondPrefix);
+    Tuple<String, Codec<String>> schemaPrefixWithCodec = containerData.containerPrefixWithCodec();
+    final KeyPrefixFilter secondFilter = KeyPrefixFilter.newFilter(
+        new Tuple<>(schemaPrefixWithCodec._1() + secondPrefix,
+        schemaPrefixWithCodec._2()));
     testWithFilter(secondFilter, blockIDs.get(secondPrefix));
   }
 

@@ -18,6 +18,7 @@
 package org.apache.hadoop.ozone.container.metadata;
 
 import static org.apache.hadoop.ozone.container.metadata.DatanodeSchemaThreeDBDefinition.getContainerKeyPrefix;
+import static org.apache.hadoop.ozone.container.metadata.DatanodeSchemaThreeDBDefinition.getContainerKeyPrefixWithCodec;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +49,7 @@ import org.apache.hadoop.ozone.container.common.statemachine.DatanodeConfigurati
 import org.apache.hadoop.ozone.container.upgrade.VersionedDatanodeFeatures;
 import org.rocksdb.LiveFileMetaData;
 import org.rocksdb.RocksDBException;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * Constructs a datanode store in accordance with schema version 3, which uses
@@ -86,10 +88,13 @@ public class DatanodeStoreSchemaThreeImpl extends DatanodeStoreWithIncrementalCh
       throws IOException {
     // Here we need to filter the keys with containerID as prefix
     // and followed by metadata prefixes such as #deleting#.
+    Tuple<String, Codec<String>> containerKeyPrefixWithCodec =
+        getContainerKeyPrefixWithCodec(containerID);
     return new KeyValueBlockIterator(containerID,
         getBlockDataTableWithIterator()
-            .iterator(getContainerKeyPrefix(containerID)),
-        KeyPrefixFilter.newFilter(getContainerKeyPrefix(containerID) + "#", true));
+            .iterator(containerKeyPrefixWithCodec._1()),
+        KeyPrefixFilter.newFilter(new Tuple<>(containerKeyPrefixWithCodec._1() + "#",
+            containerKeyPrefixWithCodec._2()), true));
   }
 
   @Override

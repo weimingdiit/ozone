@@ -17,7 +17,10 @@
 
 package org.apache.hadoop.hdds.utils;
 
-import org.apache.hadoop.hdds.StringUtils;
+import org.apache.hadoop.hdds.utils.db.Codec;
+import org.apache.hadoop.hdds.utils.db.CodecException;
+import org.apache.hadoop.hdds.utils.db.StringCodec;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * An utility class to filter levelDB keys.
@@ -32,7 +35,7 @@ public final class MetadataKeyFilters {
    * added in the future.
    */
   public static KeyPrefixFilter getUnprefixedKeyFilter() {
-    return KeyPrefixFilter.newFilter("#", true);
+    return KeyPrefixFilter.newFilter(new Tuple<>("#", StringCodec.get()), true);
   }
 
   /**
@@ -46,7 +49,7 @@ public final class MetadataKeyFilters {
     private int keysScanned = 0;
     private int keysHinted = 0;
 
-    private KeyPrefixFilter(byte[] prefix, boolean isPositive) {
+    public KeyPrefixFilter(byte[] prefix, boolean isPositive) {
       this.prefix = prefix;
       this.isPositive = isPositive;
     }
@@ -90,24 +93,24 @@ public final class MetadataKeyFilters {
     }
 
     /** The same as newFilter(prefix, false). */
-    public static KeyPrefixFilter newFilter(String prefix) {
-      return newFilter(prefix, false);
+    public static KeyPrefixFilter newFilter(Tuple<String, Codec<String>> prefixWithCodec) {
+      return newFilter(prefixWithCodec, false);
     }
 
     /** @return a positive/negative filter for the given prefix. */
-    public static KeyPrefixFilter newFilter(String prefix, boolean negative) {
-      if (prefix == null) {
+    public static KeyPrefixFilter newFilter(Tuple<String, Codec<String>> prefixWithCodec, boolean negative) {
+      if (prefixWithCodec._1() == null) {
         if (negative) {
           throw new IllegalArgumentException("The prefix of a negative filter cannot be null");
         }
         return NULL_FILTER;
       }
-
-      // TODO: HDDS-13329: Two exising bugs in the code:
-      //       Bug 1: StringUtils.string2Bytes may silently replace unsupported characters with '?'.
-      //       Bug 2: The encoding of StringUtils.string2Bytes can be different from the Codec of key.
-      //       It should use the same Codec as the key in order to fix them.
-      return new KeyPrefixFilter(StringUtils.string2Bytes(prefix), !negative);
+      // Use StringCodec to avoid silent replacement of unmappable chars.
+      try {
+        return new KeyPrefixFilter(prefixWithCodec._2().toPersistedFormat(prefixWithCodec._1()), !negative);
+      } catch (CodecException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

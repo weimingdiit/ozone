@@ -23,8 +23,10 @@ import org.apache.hadoop.hdds.utils.MetadataKeyFilters.KeyPrefixFilter;
 import org.apache.hadoop.hdds.utils.db.BatchOperation;
 import org.apache.hadoop.hdds.utils.db.CodecException;
 import org.apache.hadoop.hdds.utils.db.RocksDatabaseException;
+import org.apache.hadoop.hdds.utils.db.StringCodec;
 import org.apache.hadoop.hdds.utils.db.Table;
 import org.apache.hadoop.ozone.container.common.helpers.ChunkInfoList;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * For RocksDB instances written using DB schema version 1, all data is
@@ -46,7 +48,8 @@ import org.apache.hadoop.ozone.container.common.helpers.ChunkInfoList;
 public class SchemaOneDeletedBlocksTable extends DatanodeTable<String,
         ChunkInfoList> {
   public static final String DELETED_KEY_PREFIX = "#deleted#";
-  private static final KeyPrefixFilter DELETED_FILTER = KeyPrefixFilter.newFilter(DELETED_KEY_PREFIX);
+  private static final KeyPrefixFilter DELETED_FILTER = KeyPrefixFilter.newFilter(new Tuple<>(DELETED_KEY_PREFIX,
+      StringCodec.get()));
 
   public SchemaOneDeletedBlocksTable(Table<String, ChunkInfoList> table) {
     super(table);

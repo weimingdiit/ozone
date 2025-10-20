@@ -36,6 +36,7 @@ import static org.apache.hadoop.ozone.OzoneConsts.SCHEMA_V2;
 import static org.apache.hadoop.ozone.OzoneConsts.SCHEMA_V3;
 import static org.apache.hadoop.ozone.OzoneConsts.SCHEMA_VERSION;
 import static org.apache.hadoop.ozone.container.metadata.DatanodeSchemaThreeDBDefinition.getContainerKeyPrefix;
+import static org.apache.hadoop.ozone.container.metadata.DatanodeSchemaThreeDBDefinition.getContainerKeyPrefixWithCodec;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.base.Preconditions;
@@ -55,6 +56,9 @@ import org.apache.hadoop.hdds.scm.container.common.helpers.StorageContainerExcep
 import org.apache.hadoop.hdds.upgrade.HDDSLayoutFeature;
 import org.apache.hadoop.hdds.utils.MetadataKeyFilters.KeyPrefixFilter;
 import org.apache.hadoop.hdds.utils.db.BatchOperation;
+import org.apache.hadoop.hdds.utils.db.Codec;
+import org.apache.hadoop.hdds.utils.db.FixedLengthStringCodec;
+import org.apache.hadoop.hdds.utils.db.StringCodec;
 import org.apache.hadoop.hdds.utils.db.Table;
 import org.apache.hadoop.ozone.container.common.impl.ContainerData;
 import org.apache.hadoop.ozone.container.common.impl.ContainerLayoutVersion;
@@ -62,6 +66,7 @@ import org.apache.hadoop.ozone.container.common.interfaces.DBHandle;
 import org.apache.hadoop.ozone.container.keyvalue.helpers.KeyValueContainerUtil;
 import org.apache.hadoop.ozone.container.upgrade.VersionedDatanodeFeatures;
 import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.util.Tuple;
 
 /**
  * This class represents the KeyValueContainer metadata, which is the
@@ -451,17 +456,17 @@ public class KeyValueContainerData extends ContainerData {
     return formatKey(PENDING_DELETE_BLOCK_BYTES);
   }
 
-  public String getDeletingBlockKeyPrefix() {
-    return formatKey(DELETING_KEY_PREFIX);
+  public Tuple<String, Codec<String>> getDeletingBlockKeyPrefixWithCodec() {
+    return formatKeyWithCodec(DELETING_KEY_PREFIX);
   }
 
   public KeyPrefixFilter getUnprefixedKeyFilter() {
-    String schemaPrefix = containerPrefix();
-    return KeyPrefixFilter.newFilter(schemaPrefix + "#", true);
+    Tuple<String, Codec<String>> schemaPrefix = containerPrefixWithCodec();
+    return KeyPrefixFilter.newFilter(new Tuple<>(schemaPrefix._1() + "#", schemaPrefix._2()), true);
   }
 
   public KeyPrefixFilter getDeletingBlockKeyFilter() {
-    return KeyPrefixFilter.newFilter(getDeletingBlockKeyPrefix());
+    return KeyPrefixFilter.newFilter(getDeletingBlockKeyPrefixWithCodec());
   }
 
   /**
@@ -486,6 +491,13 @@ public class KeyValueContainerData extends ContainerData {
     return "";
   }
 
+  public Tuple<String, Codec<String>> containerPrefixWithCodec() {
+    if (hasSchema(SCHEMA_V3)) {
+      return getContainerKeyPrefixWithCodec(getContainerID());
+    }
+    return new Tuple<>("", FixedLengthStringCodec.get());
+  }
+
   /**
    * Format the raw key to a schema specific format key.
    * Schema v3 use container ID as key prefix,
@@ -498,6 +510,14 @@ public class KeyValueContainerData extends ContainerData {
       key = getContainerKeyPrefix(getContainerID()) + key;
     }
     return key;
+  }
+
+  private Tuple<String, Codec<String>> formatKeyWithCodec(String key) {
+    if (hasSchema(SCHEMA_V3)) {
+      Tuple<String, Codec<String>> keyPrefixWithCodec = getContainerKeyPrefixWithCodec(getContainerID());
+      return new Tuple<>(keyPrefixWithCodec._1() + key, keyPrefixWithCodec._2());
+    }
+    return new Tuple<>(key, StringCodec.get());
   }
 
   public boolean hasSchema(String version) {
